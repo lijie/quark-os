@@ -1,0 +1,124 @@
+
+kernel/init.o:     file format pe-i386
+
+Disassembly of section .text:
+
+00000000 <_kernel_start>:
+   0:	55                   	push   %ebp
+   1:	89 e5                	mov    %esp,%ebp
+   3:	57                   	push   %edi
+   4:	56                   	push   %esi
+   5:	53                   	push   %ebx
+   6:	83 ec 1c             	sub    $0x1c,%esp
+   9:	c7 04 24 00 00 00 00 	movl   $0x0,(%esp)
+  10:	e8 00 00 00 00       	call   15 <_kernel_start+0x15>
+  15:	c7 04 24 1d 00 00 00 	movl   $0x1d,(%esp)
+  1c:	b8 cc 07 00 00       	mov    $0x7cc,%eax
+  21:	89 44 24 04          	mov    %eax,0x4(%esp)
+  25:	e8 00 00 00 00       	call   2a <_kernel_start+0x2a>
+  2a:	a1 00 80 00 00       	mov    0x8000,%eax
+  2f:	c7 04 24 30 00 00 00 	movl   $0x30,(%esp)
+  36:	89 44 24 04          	mov    %eax,0x4(%esp)
+  3a:	e8 00 00 00 00       	call   3f <_kernel_start+0x3f>
+  3f:	e8 00 00 00 00       	call   44 <_kernel_start+0x44>
+  44:	e8 00 00 00 00       	call   49 <_kernel_start+0x49>
+  49:	fb                   	sti    
+  4a:	e8 00 00 00 00       	call   4f <_kernel_start+0x4f>
+  4f:	e8 00 00 00 00       	call   54 <_kernel_start+0x54>
+  54:	8c c8                	movl   %cs,%eax
+  56:	89 c7                	mov    %eax,%edi
+  58:	8c d8                	movl   %ds,%eax
+  5a:	89 c3                	mov    %eax,%ebx
+  5c:	8c c0                	movl   %es,%eax
+  5e:	89 c6                	mov    %eax,%esi
+  60:	8c e0                	movl   %fs,%eax
+  62:	89 c1                	mov    %eax,%ecx
+  64:	8c e8                	movl   %gs,%eax
+  66:	89 c2                	mov    %eax,%edx
+  68:	8c d0                	movl   %ss,%eax
+  6a:	89 44 24 18          	mov    %eax,0x18(%esp)
+  6e:	89 54 24 14          	mov    %edx,0x14(%esp)
+  72:	89 4c 24 10          	mov    %ecx,0x10(%esp)
+  76:	89 74 24 0c          	mov    %esi,0xc(%esp)
+  7a:	89 5c 24 08          	mov    %ebx,0x8(%esp)
+  7e:	89 7c 24 04          	mov    %edi,0x4(%esp)
+  82:	c7 04 24 40 00 00 00 	movl   $0x40,(%esp)
+  89:	e8 00 00 00 00       	call   8e <_kernel_start+0x8e>
+  8e:	90                   	nop    
+  8f:	a1 00 00 00 00       	mov    0x0,%eax
+  94:	3d f3 01 00 00       	cmp    $0x1f3,%eax
+  99:	76 f4                	jbe    8f <_kernel_start+0x8f>
+  9b:	90                   	nop    
+  9c:	c7 04 24 6a 00 00 00 	movl   $0x6a,(%esp)
+  a3:	a1 00 00 00 00       	mov    0x0,%eax
+  a8:	89 44 24 04          	mov    %eax,0x4(%esp)
+  ac:	e8 00 00 00 00       	call   b1 <_kernel_start+0xb1>
+  b1:	a1 00 00 00 00       	mov    0x0,%eax
+  b6:	3d e7 03 00 00       	cmp    $0x3e7,%eax
+  bb:	76 f4                	jbe    b1 <_kernel_start+0xb1>
+  bd:	c7 04 24 6a 00 00 00 	movl   $0x6a,(%esp)
+  c4:	a1 00 00 00 00       	mov    0x0,%eax
+  c9:	89 44 24 04          	mov    %eax,0x4(%esp)
+  cd:	e8 00 00 00 00       	call   d2 <_kernel_start+0xd2>
+  d2:	eb fe                	jmp    d2 <_kernel_start+0xd2>
+  d4:	90                   	nop    
+  d5:	90                   	nop    
+  d6:	90                   	nop    
+  d7:	90                   	nop    
+  d8:	90                   	nop    
+  d9:	90                   	nop    
+  da:	90                   	nop    
+  db:	90                   	nop    
+  dc:	90                   	nop    
+  dd:	90                   	nop    
+  de:	90                   	nop    
+  df:	90                   	nop    
+Disassembly of section .data:
+
+00000000 <_kernel_stack>:
+   0:	00 00                	add    %al,(%eax)
+   2:	30 00                	xor    %al,(%eax)
+	...
+Disassembly of section .rdata:
+
+00000000 <.rdata>:
+   0:	57                   	push   %edi
+   1:	65                   	gs
+   2:	6c                   	insb   (%dx),%es:(%edi)
+   3:	63 6f 6d             	arpl   %bp,0x6d(%edi)
+   6:	65 20 74 6f 20       	and    %dh,%gs:0x20(%edi,%ebp,2)
+   b:	6d                   	insl   (%dx),%es:(%edi)
+   c:	79 20                	jns    2e <.rdata+0x2e>
+   e:	6b 65 72 6e          	imul   $0x6e,0x72(%ebp),%esp
+  12:	65                   	gs
+  13:	6c                   	insb   (%dx),%es:(%edi)
+  14:	20 77 6f             	and    %dh,0x6f(%edi)
+  17:	72 6c                	jb     85 <_kernel_start+0x85>
+  19:	64 21 0a             	and    %ecx,%fs:(%edx)
+  1c:	00 54 68 69          	add    %dl,0x69(%eax,%ebp,2)
+  20:	73 20                	jae    42 <.rdata+0x42>
+  22:	69 73 20 70 72 69 6e 	imul   $0x6e697270,0x20(%ebx),%esi
+  29:	74 66                	je     91 <_kernel_start+0x91>
+  2b:	20 25 64 0a 00 6d    	and    %ah,0x6d000a64
+  31:	65                   	gs
+  32:	6d                   	insl   (%dx),%es:(%edi)
+  33:	20 73 69             	and    %dh,0x69(%ebx)
+  36:	7a 65                	jp     9d <_kernel_start+0x9d>
+  38:	20 25 64 0a 00 00    	and    %ah,0xa64
+  3e:	00 00                	add    %al,(%eax)
+  40:	43                   	inc    %ebx
+  41:	53                   	push   %ebx
+  42:	20 25 58 2c 20 44    	and    %ah,0x44202c58
+  48:	53                   	push   %ebx
+  49:	20 25 58 2c 20 45    	and    %ah,0x45202c58
+  4f:	53                   	push   %ebx
+  50:	20 25 58 2c 20 46    	and    %ah,0x46202c58
+  56:	53                   	push   %ebx
+  57:	20 25 58 2c 20 47    	and    %ah,0x47202c58
+  5d:	53                   	push   %ebx
+  5e:	20 25 58 2c 20 53    	and    %ah,0x53202c58
+  64:	53                   	push   %ebx
+  65:	20 25 58 0a 00 6a    	and    %ah,0x6a000a58
+  6b:	69 66 66 69 65 73 20 	imul   $0x20736569,0x66(%esi),%esp
+  72:	25 64 0a 00 00       	and    $0xa64,%eax
+	...
