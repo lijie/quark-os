@@ -1,0 +1,7 @@
+*.o
+*.asm
+*.img
+*.bin
+*.elf
+*.map
+

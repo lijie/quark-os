@@ -1,16 +1,16 @@
 	
 	.text
-	.globl _time_interrupt
-_time_interrupt:
-	incl _jiffies
+	.globl time_interrupt
+time_interrupt:
+	incl jiffies
 	movb $0x20, %al
 	out %al, $0x20
-	call _do_time_interrupt
+	call do_time_interrupt
 	iret
 
-	.globl _divide_error
-_divide_error:
-	pushl $_do_divide_error
+	.globl divide_error
+divide_error:
+	pushl $do_divide_error
 no_error_code:
 	xchgl %eax,(%esp)
 	pushl %ebx

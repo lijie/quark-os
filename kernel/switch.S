@@ -20,6 +20,6 @@ _load_ldt:
 _test_task:
 	movl $0x00, %eax
 
-	.globl _die
-_die:
+	.globl die
+die:
 1:	jb 1

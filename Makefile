@@ -8,7 +8,7 @@ export CFLAGS 		:= -O2 -fno-builtin -Wall -I$(INC_PATH)
 .PHONY: all loader kernel
 
 all: boot.img
-	cp boot.img ../../Bochs-2.3.6/boot.img
+#	cp boot.img ../../Bochs-2.3.6/boot.img
 
 boot.img: loader kernel
 	tools/mkimage boot/loader.bin kernel/kernel.bin

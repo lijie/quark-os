@@ -70,7 +70,7 @@ page_pde_offset = (__PAGE_OFFSET >> 20);
 #endif
 	cli                 # Clear or disable interrupts
 pmmode:
-	call _intr_init
+	call intr_init
 	lgdt gdtr
 	lidt idt_descr
 	movl $16, %eax
@@ -83,7 +83,7 @@ pmmode:
 1:	
 	/* this is the end */
 
- 	call _kernel_start
+ 	call kernel_start
 spin : 
 	jmp spin          # Loop
 
@@ -98,7 +98,7 @@ setup_idt:
 	movw %dx,%ax		/* selector = 0x0010 = cs */
 	movw $0x8E00,%dx	/* interrupt gate - dpl=0, present */
 
-	lea _idt_table,%edi
+	lea idt_table,%edi
 	mov $256,%ecx
 rp_sidt:
 	movl %eax,(%edi)
@@ -111,25 +111,25 @@ rp_sidt:
 /* This is the default interrupt "handler" :-) */
 	ALIGN
 ignore_int:
-	call _printk
+	call printk
 	movb $0x20, %al
 	out %al, $0x20
 	iret
 
-	.globl _intr_handler
-_intr_handler:	
-	call _printk
+	.globl intr_handler
+intr_handler:	
+	call printk
 	movb $0x20, %al
 	out %al, $0x20
 	iret
 
 	.data
 gdtr:
-	.word (gdt_end - _gdt-1)		# Length of the gdt
-	.long _gdt                      	# physical address of gdt
+	.word (gdt_end - gdt-1)		# Length of the gdt
+	.long gdt                      	# physical address of gdt
 
-	.global _gdt
-_gdt:
+	.global gdt
+gdt:
 	.quad 0x0000000000000000	/* NULL descriptor */
 	.quad 0x00cf9a000000fff0	/* kernel 4GB code at 0x00000000 */
 	.quad 0x00cf92000000fff0	/* kernel 4GB data at 0x00000000 */
@@ -155,8 +155,8 @@ _gdt:
 
 	.fill 12,8,0			/* space for LDT's and TSS's etc */
 gdt_end:
-	.global _ldt
-_ldt:	
+	.global ldt
+ldt:	
 	.quad 0x0000000000000000	/* no use */
 	.quad 0x00cffa0000000fff
 	.quad 0x00cff20000000fff
@@ -165,4 +165,4 @@ _ldt:
 
 idt_descr:
 	.word 256*8-1		# idt contains 256 entries
-	.long _idt_table
+	.long idt_table
