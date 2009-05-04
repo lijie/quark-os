@@ -1,0 +1,4 @@
+kernel code	0xC0100000 - 0xC0200000		1 MB only
+kernel PGDIR	0xC0200000 - 0xC0201000
+kernel PGTBL	0xC0201000 - ~			if 32MB memory, uses 4 * 32 * 1024 / 4 = 32K
+kernel stack	0xC0300000 - 0xC0302000		8K
