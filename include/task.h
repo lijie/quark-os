@@ -65,8 +65,7 @@ struct task {
 	struct tss_struct	 tss;
 	u16_t			 ldt_sel;
 	struct desc_struct	 desc;
-	struct desc_struct	 ldt0;
-	struct desc_struct	 ldt1;
+	struct desc_struct	 ldt[3];
 	volatile long		 state;
 	struct mm_struct	*mm;
 	pid_t			 pid;
@@ -80,6 +79,8 @@ union thread_union {
 	task_t *task;
 	unsigned long stack[STACK_SIZE / sizeof(unsigned long)];
 };
+
+typedef union thread_union thread_t;
 
 static inline union thread_union * current_thread(void)
 {
@@ -98,7 +99,7 @@ static inline void pause(void)
 	while (1);
 }
 
-#define	TSS_INIT(task)	init_desc(&gdt[TSS], (uint32_t)&((task)->tss), sizeof(struct tss_struct) - 1, DA_386TSS);
+#define	TSS_INIT(task)	init_desc(&gdt[TSS], (uint32_t)&((task)->tss), sizeof(struct tss_struct) - 1, DA_386TSS | DA_DPL3);
 #define	LDT_INIT(task)	init_desc(&gdt[LDT], (uint32_t)&((task)->ldt0), sizeof((task)->ldt0) * 2 - 1, DA_LDT);
 
 extern void task_init(void);

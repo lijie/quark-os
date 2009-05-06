@@ -32,3 +32,12 @@ size_t strnlen(const char * s, size_t count)
 		/* nothing */;
 	return sc - s;
 }
+
+void mem_dump(uint8_t *addr, uint32_t size)
+{
+	int i;
+	for (i = 0; i < size; i++)
+		printf("%02X ", addr[i]);
+
+	printf("\n");
+}

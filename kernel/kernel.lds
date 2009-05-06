@@ -4,7 +4,7 @@
 OUTPUT_ARCH(i386)
 ENTRY(startup)
 SECTIONS {
-	 . = 0xC0000000 + 0x10000;
+	 . = 0xC0000000 + 0x100000;
 	 _text = .;			/* Text and read-only data */
 	 .text : {
 	       startup.o(.text)

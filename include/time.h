@@ -1,7 +1,8 @@
 #ifndef	__TIME_H__
 #define	__TIME_H__
 
-#define	HZ		100
+#define	HZ			100
+#define	LATCH			(1193180 / HZ)
 
 extern unsigned long volatile jiffies;
 

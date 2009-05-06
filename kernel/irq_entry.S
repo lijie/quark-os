@@ -1,11 +1,16 @@
 	
 	.text
-	.globl time_interrupt
-time_interrupt:
-	incl jiffies
+	.globl timer_interrupt
+timer_interrupt:
+	push %ds
+	pushl %eax
+	movl $0x10, %eax
+	mov %ax, %ds
 	movb $0x20, %al
-	out %al, $0x20
-	call do_time_interrupt
+	out %al, $0x20	
+	incl jiffies
+	popl %eax
+	pop %ds
 	iret
 
 	.globl divide_error

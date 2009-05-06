@@ -34,7 +34,7 @@ void schedule(void)
 
 	cur_task = next;
 	TSS_INIT(next);
-	init_desc(&gdt[LDT_START], (uint32_t)(&(next->ldt0)), 15, DA_LDT | DA_DPL3);
+	init_desc(&gdt[LDT], (uint32_t)(&(next->ldt[0])), 15, DA_LDT | DA_DPL3);
 /* 	__switch_to(next); */
 	asm __volatile__ (
 		"push %%ds\n\t"

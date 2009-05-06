@@ -44,4 +44,6 @@ static inline task_t * alloc_one_task(void)
 	return (task_t *)__get_free_pages();
 }
 #endif
+
+extern unsigned long mem_size_kbytes;
 #endif

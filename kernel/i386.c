@@ -3,6 +3,7 @@
 #include "string.h"
 #include "task.h"
 
+#if 0
 void arch_setup_task(task_t *task, void (*func)(void *))
 {
 	task->ldt_sel = LDT_SELECTOR;
@@ -32,6 +33,7 @@ void arch_setup_task(task_t *task, void (*func)(void *))
 	init_desc(&gdt[LDT], (uint32_t)&task->ldt0, sizeof(task->ldt0) * 2 - 1, DA_LDT);
 	return;
 }
+#endif
 
 void __switch_soft(task_t *task)
 {

@@ -7,7 +7,7 @@
 	.text
 	.globl _start
 _start:
-	movw $START_SEG, %ax
+	movw $(START_SEG), %ax
 	movw %ax, %es
 	movw $START_OFFSET, %bx
 	movb $0, %dl

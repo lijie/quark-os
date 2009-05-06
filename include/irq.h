@@ -34,7 +34,7 @@ extern void irq_disable(int irqno);
 #endif
 
 /* irq handlers */
-extern void time_interrupt(void);
+extern void timer_interrupt(void);
 extern void realtime_interrupt(void);
 extern void kdb_interrupt(void);
 extern void serial1_interrupt(void);

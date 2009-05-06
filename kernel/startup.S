@@ -6,19 +6,34 @@
   .align 4, 0x90; \
   name:
 
+#define	ENDLESS \
+__endless:	jmp __endless
+
+#define	LATCH	11930
+
 	.code32
 	.text
 ENTRY(startup)
 	in $0x92, %al
 	or $0x02, %al
 	out %al, $0x92
-#if 0
-	lgdt gdtr
-	sgdt gdtr
-        ljmp $BOOT_CS_SELECTOR, $1f
-#else
+
+	/* copy kernel code from 0x10000 -> _text */
+	leal _text, %edi
+	subl $__PAGE_OFFSET, %edi
+	leal _end, %ecx
+	subl $__PAGE_OFFSET, %ecx
+	subl %edi, %ecx
+	movl $0x00010000, %esi
+	rep
+	movsb
+
+	/* save memory size */
+	movl 0x8000, %ebx
+	movl %ebx, mem_size_kbytes - __PAGE_OFFSET
+
 	jmp begin_boot
-#endif
+
 ENTRY(begin_boot)	
 	cld
 
@@ -41,6 +56,7 @@ page_pde_offset = (__PAGE_OFFSET >> 20);
 	addl $0x1000,%eax
 	loop 11b
 
+	/* map 8MB size only, it should be 896MB like linux */
 	cmpl $0x800000, %eax
 	jb 10b
 /*	movl %edi,(init_pg_tables_end - __PAGE_OFFSET) */
@@ -64,15 +80,10 @@ page_pde_offset = (__PAGE_OFFSET >> 20);
 	pushl $0
 	popfl
 #endif
-#if 0
-	movw $0x2401, %ax
-	int $0x15
-#endif
+
 	cli                 # Clear or disable interrupts
 pmmode:
-	call intr_init
 	lgdt gdtr
-	lidt idt_descr
 	movl $16, %eax
 	movw %ax, %ds
 	movw %ax, %es
@@ -80,9 +91,7 @@ pmmode:
 	movw %ax, %gs
 	movw %ax, %ss
 	ljmp $8, $1f
-1:	
-	/* this is the end */
-
+1:
  	call kernel_start
 spin : 
 	jmp spin          # Loop
@@ -91,39 +100,25 @@ spin :
 _load_gdt:
 	lgdt gdtr
 
-setup_idt:
-	lea ignore_int,%edx
-/* 	movl $(__KERNEL_CS << 16),%eax */
-	mov $(8 << 16), %eax
-	movw %dx,%ax		/* selector = 0x0010 = cs */
-	movw $0x8E00,%dx	/* interrupt gate - dpl=0, present */
-
-	lea idt_table,%edi
-	mov $256,%ecx
-rp_sidt:
-	movl %eax,(%edi)
-	movl %edx,4(%edi)
-	addl $8,%edi
-	dec %ecx
-	jne rp_sidt
-	ret
-
 /* This is the default interrupt "handler" :-) */
 	ALIGN
+	.global ignore_int
 ignore_int:
-	call printk
-	movb $0x20, %al
-	out %al, $0x20
-	iret
-
-	.globl intr_handler
-intr_handler:	
-	call printk
-	movb $0x20, %al
-	out %al, $0x20
+	push %ds
+	pushl %eax
+	movl $0x10, %eax
+	mov %ax, %ds
+	pushl $0x42
+	call putchar
+	popl %eax
+	popl %eax
+	pop %ds
 	iret
 
 	.data
+	.global idt
+idt:
+	.fill 256, 8, 0
 gdtr:
 	.word (gdt_end - gdt-1)		# Length of the gdt
 	.long gdt                      	# physical address of gdt
@@ -158,11 +153,16 @@ gdt_end:
 	.global ldt
 ldt:	
 	.quad 0x0000000000000000	/* no use */
-	.quad 0x00cffa0000000fff
-	.quad 0x00cff20000000fff
-	.quad 0x00cffa0000000fff
-	.quad 0x00cff20000000fff
+	.quad 0x00cffa000000fff0	/* code seg */
+	.quad 0x00cff2000000fff0	/* data seg */
+	.quad 0x00c0fa00000003ff
+	.quad 0x00c0f200000003ff
 
-idt_descr:
-	.word 256*8-1		# idt contains 256 entries
-	.long idt_table
+	.global mem_size_kbytes
+	.bss
+	.align 4
+	.type	mem_size, @object
+	.size	mem_size, 4
+mem_size_kbytes:
+	.zero 4
+

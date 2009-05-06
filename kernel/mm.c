@@ -11,7 +11,3 @@ void mm_init(void)
 	total_pages = (MM_END_ADDR - MM_START_ADDR) / PAGE_SIZE;
 }
 
-void * __get_free_pages(size_t count)
-{
-	return NULL;
-}

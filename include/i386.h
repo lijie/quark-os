@@ -15,7 +15,6 @@
 #define	KERNEL_DATA	2
 #define	TSS		16
 #define	LDT		17
-#define	LDT_START	18
 
 #define	BOOT_CS		KERNEL_CODE
 #define	BOOT_DS		KERNEL_DATA
@@ -119,9 +118,6 @@ struct __desc_struct {
 typedef struct __desc_struct desc_t;
 
 struct idt_desc {
-#if 0
-	uint32_t a,b;
-#else
 	uint16_t	offset_low;
 	uint16_t 	selector;
 	uint8_t		unused;
@@ -131,32 +127,36 @@ struct idt_desc {
 	uint8_t		DPL : 2;
 	uint8_t		P : 1;
 	uint16_t	offset_hig;
-#endif
 };
+
+struct idtr_struct {
+	uint16_t	limit;
+	uint32_t	base;
+} __attribute__((packed));
 
 extern void init_desc(desc_t *desc, uint32_t base, uint32_t limit, uint32_t attr);
 
 #define	sti()		__asm__ __volatile__ ("sti")
 #define	cli()		__asm__ __volatile__ ("cli")
-#define load_ldt()	__asm__ __volatile__ ("lldt %%ax" : : "a"(0x90));
-#define load_tss()	__asm__ __volatile__ ("ltr %%ax" : : "a"(0x80));
+#define load_ldt(sel)	__asm__ __volatile__ ("lldt %%ax" : : "a"(sel));
+#define load_tss(sel)	__asm__ __volatile__ ("ltr %%ax" : : "a"(sel));
 
-extern struct idt_desc idt_table[256];
+extern struct idt_desc idt[256];
 
 #define	INTR_GATE	14
 #define	TRAP_GATE	15
 #define	_set_gate(gate, offset, type, dpl)				\
 	do {								\
-		*(uint32_t *)gate = 0x80000 | (offset & 0x0FFFF);		\
+		*(uint32_t *)gate = 0x80000 | (offset & 0x0FFFF);	\
 		*((uint32_t *)gate + 1) = (offset & 0xFFFF0000) | 0x8000 | (type << 8) | (dpl << 13); \
 	} while (0)
 
 /* extern desc_t idt_table; */
 #define	set_trap_gate(n, offset) \
-	_set_gate(&idt_table[n], offset, TRAP_GATE, 0)
+	_set_gate(&idt[n], offset, TRAP_GATE, 0)
 
 #define	set_intr_gate(n, offset) \
-	_set_gate(&idt_table[n], offset, INTR_GATE, 0)
+	_set_gate(&idt[n], offset, INTR_GATE, 0)
 
 /* some i386 debug functions */
 static inline void show_i386_regs(void)
