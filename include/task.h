@@ -5,8 +5,6 @@
 #include "types.h"
 #include "i386.h"
 
-#define	STACK_SIZE	(8 * 1024)
-
 struct tss_struct {
 	uint32_t back_link;
 	uint32_t esp0;
@@ -70,7 +68,7 @@ struct task {
 	struct mm_struct	*mm;
 	pid_t			 pid;
 	struct regs_struct	 regs;
-	uint32_t		 entry;
+	unsigned long		 entry;
 };
 
 typedef struct task task_t;
@@ -90,7 +88,9 @@ static inline union thread_union * current_thread(void)
 }
 #define	current	(current_thread()->task)
 
-extern union thread_union *init_thread;
+/* defined in startup.S */
+extern thread_t *init_thread;
+
 extern task_t task0;
 extern task_t task1;
 

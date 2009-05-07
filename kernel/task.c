@@ -14,13 +14,9 @@ static inline void delay(void)
 
 task_t task0;
 task_t task1;
-#if 0
-union thread_union *init_thread = (union thread_union *)(KERNEL_STACK - STACK_SIZE);
-#else
+
 #define	TASK0_STACK	0xC0400000
 #define	TASK1_STACK	(TASK0_STACK + STACK_SIZE)
-union thread_union *init_thread = (union thread_union *)(TASK0_STACK - STACK_SIZE);
-#endif
 
 #define __switch(task) {				\
 		asm __volatile__ (			\

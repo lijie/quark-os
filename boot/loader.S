@@ -14,7 +14,7 @@ _start:
 	movb $0, %dh
 	movb $0, %ch
 	movb $2, %cl
-	movb $32, %al
+	movb $63, %al
 	movb $2, %ah
 	int $0x13
 

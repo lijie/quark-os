@@ -182,6 +182,4 @@ static inline void show_i386_regs(void)
 extern desc_t gdt[];
 extern desc_t ldt[];
 
-#define	PAGE_SIZE	(1 << 12)
-
 #endif

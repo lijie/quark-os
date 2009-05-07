@@ -40,8 +40,17 @@ ENTRY(begin_boot)
 	/* enable paging */
 #if 1
 page_pde_offset = (__PAGE_OFFSET >> 20);
-	movl $PAGE_TBL, %edi
-	movl $PAGE_DIR, %edx
+	leal pg, %edi
+	subl $__PAGE_OFFSET, %edi
+	addl $PAGE_SIZE, %edi
+	leal pg, %edx
+	subl $__PAGE_OFFSET, %edx
+	movl %edi, testv1 - __PAGE_OFFSET
+	movl %edx, testv2 - __PAGE_OFFSET
+#if 0
+	movl $0x202000, %edi
+	movl $0x201000, %edx
+#endif
 	movl $0x007, %eax			/* 0x007 = PRESENT+RW+USER */
 10:
 	leal 0x007(%edi),%ecx			/* Create PDE entry */
@@ -61,7 +70,7 @@ page_pde_offset = (__PAGE_OFFSET >> 20);
 	jb 10b
 /*	movl %edi,(init_pg_tables_end - __PAGE_OFFSET) */
 
-	movl $PAGE_DIR, %eax
+	movl %edx, %eax
 	movl %eax,%cr3		/* set the page table pointer.. */
 	movl %cr0,%eax
 	orl $0x80000000,%eax
@@ -70,8 +79,10 @@ page_pde_offset = (__PAGE_OFFSET >> 20);
 1:
 	/* Now, the virtul addr comes to true! */
 	/* give a stack to our best friend --> C ^_^ */
+#if 1
 	movl $(__PAGE_OFFSET + KERNEL_STACK), %esp
 	movl $(__PAGE_OFFSET + KERNEL_STACK), %ebp
+#endif
 /*
  * Initialize eflags.  Some BIOS's leave bits like NT set.  This would
  * confuse the debugger if this code is traced.
@@ -92,6 +103,11 @@ pmmode:
 	movw %ax, %ss
 	ljmp $8, $1f
 1:
+	lss start_stack, %esp
+#if 0
+	movl %esp, testv1
+	movl %ebp, testv2
+#endif
  	call kernel_start
 spin : 
 	jmp spin          # Loop
@@ -116,6 +132,18 @@ ignore_int:
 	iret
 
 	.data
+
+/*
+ * We use init_task's stack as default kernel stack
+ */
+ENTRY(start_stack)
+	.long init_thread + THREAD_SIZE - 4
+	.long 0x10
+
+	.align 4096
+	.global init_thread
+init_thread:
+	.fill THREAD_SIZE / 8, 8, 0
 	.global idt
 idt:
 	.fill 256, 8, 0
@@ -123,6 +151,7 @@ gdtr:
 	.word (gdt_end - gdt-1)		# Length of the gdt
 	.long gdt                      	# physical address of gdt
 
+	.align 8
 	.global gdt
 gdt:
 	.quad 0x0000000000000000	/* NULL descriptor */
@@ -161,8 +190,24 @@ ldt:
 	.global mem_size_kbytes
 	.bss
 	.align 4
-	.type	mem_size, @object
-	.size	mem_size, 4
+	.type	mem_size_kbytes, @object
+	.size	mem_size_kbytes, 4
 mem_size_kbytes:
+	.zero 4
+
+	.global testv1
+	.bss
+	.align 4
+	.type	testv1, @object
+	.size	testv1, 4
+testv1:
+	.zero 4
+
+	.global testv2
+	.bss
+	.align 4
+	.type	testv2, @object
+	.size	testv2, 4
+testv2:
 	.zero 4
 

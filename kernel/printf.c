@@ -4,6 +4,7 @@
 #include "ctype.h"
 #include "kernel.h"
 #include "task.h"
+#include "page.h"
 
 /* 
  * This printf.c comes from Linux 2.6.x,

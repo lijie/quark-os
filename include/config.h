@@ -17,4 +17,12 @@
 
 /* kernel space start */
 #define	__PAGE_OFFSET	0xC0000000
+
+/* page */
+#define	PAGE_SHIFT		12
+#define	PAGE_SIZE		(1 << PAGE_SHIFT)
+#define	PAGE_MASK		(PAGE_SIZE - 1)
+
+#define	THREAD_SIZE		(PAGE_SIZE << 1)
+#define	STACK_SIZE		THREAD_SIZE
 #endif

@@ -12,7 +12,9 @@ kernel.bin: kernel.elf
 	objcopy -S -O binary kernel.elf kernel.bin
 
 kernel.elf: $(OBJS)
-	ld  $(OBJS) -o kernel.elf -Map System.map -e startup -Tkernel.lds
+#	ld  $(OBJS) -o kernel.elf -Map System.map -e startup -Tkernel.lds
+	ld  $(OBJS) -o kernel.elf -e startup -Tkernel.lds
+	objdump -t kernel.elf > System.map
 
 %.o: %.S
 	gcc $(CFLAGS) -c $<

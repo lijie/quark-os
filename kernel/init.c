@@ -17,6 +17,9 @@ static inline void delay(void)
 		for (j = 0; j < 0xFFFFFFF; j++);
 }
 
+extern unsigned long testv1;
+extern unsigned long testv2;
+
 /* here! we are in the world of C!! */
 void kernel_start(void)
 {
@@ -25,12 +28,17 @@ void kernel_start(void)
 	puts("Welcome to my kernel world!\n");
 	printf("This is printf %d\n", 1996);
 	printf("mem size %d bytes\n", mem_size_kbytes * 1024);
+	printf("v1 %X v2 %X\n", testv1, testv2);
 
 	intr_init();
+	sti();
 	time_init();
 	traps_init();
-	sti();
+#if 0
 
+//	__asm__ __volatile__ ("idivl 0");
+
+#endif
 	/* task_init(); */
 	beyond = 500;
 	while (1) {
