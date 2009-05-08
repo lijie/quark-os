@@ -182,4 +182,8 @@ static inline void show_i386_regs(void)
 extern desc_t gdt[];
 extern desc_t ldt[];
 
+#define	PGDIR_SIZE		4096
+
+/* kernel pgdir */
+extern char pg[];
 #endif

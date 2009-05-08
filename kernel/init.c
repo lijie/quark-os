@@ -30,10 +30,12 @@ void kernel_start(void)
 	printf("mem size %d bytes\n", mem_size_kbytes * 1024);
 	printf("v1 %X v2 %X\n", testv1, testv2);
 
-	intr_init();
-	sti();
 	time_init();
+	intr_init();
 	traps_init();
+	mm_init();
+	sti();
+
 #if 0
 
 //	__asm__ __volatile__ ("idivl 0");

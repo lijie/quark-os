@@ -3,14 +3,6 @@
 
 #include "config.h"
 #include "types.h"
-#include "task.h"
-
-struct page_struct {
-	int used;
-	uint32_t addr;
-};
-
-typedef struct page_struct page_t;
 
 static inline unsigned long virt_to_phys(unsigned long virt)
 {
@@ -21,6 +13,9 @@ static inline unsigned long phys_to_virt(unsigned long phys)
 {
 	return phys + __PAGE_OFFSET;
 }
+
+#define	__va(p)		((void *)(phys_to_virt(p)))
+#define	__pa(v)		((void *)(virt_to_phys(v)))
 
 struct mm_struct {
 	/* nothing */
@@ -38,12 +33,7 @@ static inline void * get_one_page(void)
 	return __get_free_pages(1);
 }
 
-#if 0
-static inline task_t * alloc_one_task(void)
-{
-	return (task_t *)__get_free_pages();
-}
-#endif
-
 extern unsigned long mem_size_kbytes;
+
+#define	ZONE_DMA_SIZE	(16 * 1024 * 1024)
 #endif
