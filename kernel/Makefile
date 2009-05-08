@@ -3,24 +3,34 @@ ASM_SOURCES  	= $(wildcard *.S)
 
 OBJS		:= $(SOURCES:.c=.o)
 OBJS		+= $(ASM_SOURCES:.S=.o)
+DEPS 		:= $(OBJS:.o=.d)
 
 .PHONY: all
 
 all: kernel.bin
 
 kernel.bin: kernel.elf
-	objcopy -S -O binary kernel.elf kernel.bin
+	$(OBJCOPY) -S -O binary kernel.elf kernel.bin
 
 kernel.elf: $(OBJS)
 #	ld  $(OBJS) -o kernel.elf -Map System.map -e startup -Tkernel.lds
-	ld  $(OBJS) -o kernel.elf -e startup -Tkernel.lds
-	objdump -t kernel.elf > System.map
+	$(LD)  $(OBJS) -o kernel.elf -e startup -Tkernel.lds
+	$(OBJDUMP) -t kernel.elf > System.map
 
 %.o: %.S
-	gcc $(CFLAGS) -c $<
-	objdump -D $@ > $@.asm
+	$(CC) $(CFLAGS) -c $<
+	$(OBJDUMP) -D $@ > $@.asm
 
 %.o: %.c
-	gcc $(CFLAGS) -c $<
-	objdump -D $@ > $@.asm
+	$(CC) $(CFLAGS) -c $<
+	$(OBJDUMP) -D $@ > $@.asm
 
+%.d: %.c
+	$(CC) -M $(CFLAGS) $< > $@ 
+
+%.d: %.S
+	$(CC) -M $(CFLAGS) $< > $@ 
+
+ifneq ($(MAKECMDGOALS), clean)
+include $(DEPS)
+endif

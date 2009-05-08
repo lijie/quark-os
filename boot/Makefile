@@ -4,11 +4,11 @@
 all: loader.bin
 
 loader.bin: loader.elf
-	objcopy -S -O binary loader.elf loader.bin
+	$(OBJCOPY) -S -O binary loader.elf loader.bin
 
 loader.elf: loader.o
-	ld loader.o -o loader.elf -Tboot.lds
+	$(LD) loader.o -o loader.elf -Tboot.lds
 
 loader.o: loader.S
-	gcc $(CFLAGS) -c loader.S
+	$(CC) $(CFLAGS) -c loader.S
 
