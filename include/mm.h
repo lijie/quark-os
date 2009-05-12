@@ -21,18 +21,6 @@ struct mm_struct {
 	/* nothing */
 };
 
-extern void * __get_free_pages(size_t count);
-
-static inline void * get_free_pages(size_t count)
-{
-	return __get_free_pages(count);
-}
-
-static inline void * get_one_page(void)
-{
-	return __get_free_pages(1);
-}
-
 extern unsigned long mem_size_kbytes;
 
 #define	ZONE_DMA_SIZE	(16 * 1024 * 1024)

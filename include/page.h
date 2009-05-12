@@ -7,8 +7,10 @@
 #include "list.h"
 
 struct page {
-	atmoic_t  	count;
-	unsigned long 	flags;
+	atmoic_t  		count;
+	unsigned long 		flags;
+	unsigned long 		private;
+	struct list_head 	lru;
 };
 
 #define	PGSTRUCT_SIZE		sizeof(struct page)
@@ -43,7 +45,13 @@ enum {
  */
 extern struct page * mem_map;
 
+#define	ALIGN(a, b)		(((a) + (b) - 1) & ~(b - 1))
 #define	PAGE_ALIGN(a)		(((a) + PAGE_SIZE - 1) & ~PAGE_MASK)
+
+static inline unsigned long page_to_pfn(struct page *page)
+{
+	return page - mem_map;
+}
 
 static inline struct page * virt_to_page(unsigned long virt)
 {
@@ -55,7 +63,27 @@ static inline struct page * virt_to_page(unsigned long virt)
 
 static inline void * page_address(struct page *page)
 {
-	return __va((page - mem_map) << PAGE_SHIFT);
+	return __va(page_to_pfn(page) << PAGE_SHIFT);
+}
+
+static inline unsigned long page_count(struct page *page)
+{
+	return page->count;
+}
+
+static inline void set_page_count(struct page *page, int count)
+{
+	page->count = count;
+}
+
+static inline void set_page_refcounted(struct page *page)
+{
+	set_page_count(page, 1);
+}
+
+static inline int page_isfree(struct page *page)
+{
+	return ((page_count(page) == 0) && (!PG_RVSD(page)));
 }
 
 enum {
@@ -75,7 +103,9 @@ struct free_area {
 struct zone {
 	struct page * zone_mem_map;
 	unsigned long zone_start_pfn;
-	struct free_area free_area[MAX_ORDER];
+	struct free_area free_areas[MAX_ORDER + 1];
+	unsigned long spanned_pages;
+	unsigned long free_pages;
 	char *name;
 };
 
@@ -83,4 +113,44 @@ struct zonelist {
 	struct zone *zones[ZONE_NR + 1];
 };
 
+extern struct zone zones[];
+
+static inline void page_setzone(struct page *page, int zone_type)
+{
+	page->flags |= zone_type << 30;
+}
+
+static inline struct zone * page_zone(struct page *page)
+{
+	return zones + (page->flags >> 30);
+}
+
+extern struct page * alloc_pages(unsigned long gfp_mask, int order);
+
+static inline struct page * alloc_page(unsigned long gfp_mask)
+{
+	return alloc_pages(gfp_mask, 0);
+}
+
+static inline void * get_free_pages(unsigned long gfp_mask, int order)
+{
+	struct page * page = alloc_pages(gfp_mask, order);
+
+	if (page) 
+		return page_address(page);
+	else
+		return NULL;
+}
+
+static inline void * get_free_page(unsigned long gfp_mask)
+{
+	return get_free_pages(gfp_mask, 0);
+}
+
+extern void __free_pages(struct page *page, int order);
+
+static inline void free_pages(unsigned long addr, int order)
+{
+	__free_pages(virt_to_page(addr), order);
+}
 #endif

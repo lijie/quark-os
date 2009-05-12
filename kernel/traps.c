@@ -1,5 +1,6 @@
 #include "kernel.h"
 #include "stdio.h"
+#include "string.h"
 #include "io.h"
 
 extern void die(void);
@@ -16,6 +17,7 @@ void do_divide_error(long esp, long errcode)
 
 void do_bounds_error(long esp, long errcode)
 {
+	mem_dump4(esp, 4);
 	going_to_die();
 }
 

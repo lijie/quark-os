@@ -42,11 +42,11 @@ void kernel_start(void)
 
 #endif
 	/* task_init(); */
-	beyond = 500;
+	beyond = 2000;
 	while (1) {
 		if (jiffies > beyond) {
-			beyond += 500;
-			printf("jiffies %d\n", jiffies);
+			beyond += 2000;
+//			printf("jiffies %d\n", jiffies);
 			delay();
 		}
 	}

@@ -12,6 +12,7 @@ SECTIONS {
 	 } = 0
 	 _etext = .;			/* End of text section */
 
+  . = ALIGN(4096);
   .data : {			/* Data */
 	*(.data)
 	CONSTRUCTORS

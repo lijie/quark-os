@@ -120,6 +120,36 @@ _load_gdt:
 	ALIGN
 	.global ignore_int
 ignore_int:
+	cld
+	pushl %eax
+	pushl %ecx
+	pushl %edx
+	pushl %es
+	pushl %ds
+	movl $0x10,%eax
+	movl %eax,%ds
+	movl %eax,%es
+#if 0
+	cmpl $2,early_recursion_flag
+	je hlt_loop
+	incl early_recursion_flag
+#endif
+	pushl 16(%esp)
+	pushl 24(%esp)
+	pushl 32(%esp)
+	pushl 40(%esp)
+	pushl $int_msg
+	call printf
+
+	addl $(5*4),%esp
+	popl %ds
+	popl %es
+	popl %edx
+	popl %ecx
+	popl %eax
+	iret
+#if 0
+ignore_int:
 	push %ds
 	pushl %eax
 	movl $0x10, %eax
@@ -130,7 +160,7 @@ ignore_int:
 	popl %eax
 	pop %ds
 	iret
-
+#endif
 	.data
 
 /*
@@ -186,6 +216,10 @@ ldt:
 	.quad 0x00cff2000000fff0	/* data seg */
 	.quad 0x00c0fa00000003ff
 	.quad 0x00c0f200000003ff
+
+	.align 4
+int_msg:
+	.asciz "Unknown interrupt or fault at: %p %p %p %p\n"
 
 	.global mem_size_kbytes
 	.bss

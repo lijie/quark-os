@@ -90,7 +90,7 @@ static void creat_task0(void)
 	init_desc(&gdt[TSS], (uint32_t)&((task)->tss), sizeof(struct tss_struct) - 1, DA_386TSS | DA_DPL3);
 	init_desc(&gdt[LDT], (uint32_t)(&ldt[0]), 0x40, DA_LDT | DA_DPL3);
 
-	mem_dump((uint8_t *)&gdt[TSS], sizeof(gdt[0]));
+	mem_dump1((uint8_t *)&gdt[TSS], sizeof(gdt[0]));
 }
 
 extern void test_task(void);
