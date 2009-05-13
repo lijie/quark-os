@@ -44,7 +44,7 @@ extern struct idt_desc idt[];
 extern void ignore_int(void);
 
 #define	default_handler	ignore_int
-void intr_init(void)
+void irq_init(void)
 {
 	uint32_t handler = (uint32_t)default_handler;
 	struct idt_desc desc;
@@ -83,3 +83,11 @@ void irq_enable(int irqno)
 void irq_disable(int irqno)
 {
 }
+
+#if 0
+int request_irq(unsigned int irq, irq_handler_t handler, 
+		unsigned long irqflags, const char *devname, void *dev_id)
+{
+	return 0;
+}
+#endif

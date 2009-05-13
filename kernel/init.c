@@ -35,7 +35,7 @@ void kernel_start(void)
 	printf("mem size %d bytes\n", mem_size_kbytes * 1024);
 
 	time_init();
-	intr_init();
+	irq_init();
 	traps_init();
 	mm_init();
 	sti();

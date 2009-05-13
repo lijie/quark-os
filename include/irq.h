@@ -1,9 +1,11 @@
 #ifndef	__IRQ_H__
 #define	__IRQ_H__
 
-#define	__USE_BIOS_IRQ__
+#include "i386.h"
 
-extern void intr_init(void);
+#undef	__USE_BIOS_IRQ__
+
+extern void irq_init(void);
 extern void irq_enable(int irqno);
 extern void irq_disable(int irqno);
 
@@ -29,8 +31,6 @@ extern void irq_disable(int irqno);
  */
 
 #define	IRQ(n)		((n) < 8 ? (n) + 0x08 : (n) + (0x70 - 8))
-#else
-#error	"we don't define irq vectors right now!\n"
 #endif
 
 /* irq handlers */
@@ -42,5 +42,20 @@ extern void serial2_interrupt(void);
 extern void parallel1_interrupt(void);
 extern void parallel2_interrupt(void);
 extern void ps2_interrupt(void);
+
+typedef int irqreturn_t;
+typedef irqreturn_t (*irq_handler_t)(int, void *);
+
+struct irqaction {
+	irq_handler_t handler;
+	unsigned long flags;
+	const char *name;
+	void *dev_id;
+	struct irqaction *next;
+	int irq;
+};
+
+extern int request_irq(unsigned int irq, irq_handler_t handler, 
+		       unsigned long irqflags, const char *devname, void *dev_id);
 #endif
 

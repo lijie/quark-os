@@ -12,12 +12,12 @@ export OBJCOPY		:= $(CROSS_COMPILE)objcopy
 export OBJDUMP		:= $(CROSS_COMPILE)objdump
 export HOSTCC		:= gcc
 
-.PHONY: all loader kernel
+.PHONY: all loader kernel drivers
 
 all: boot.img
 #	cp boot.img ../../Bochs-2.3.6/boot.img
 
-boot.img: loader kernel
+boot.img: loader kernel drivers
 	tools/mkimage boot/loader.bin kernel/kernel.bin
 
 loader:
@@ -25,6 +25,9 @@ loader:
 
 kernel:
 	make -C kernel
+
+drivers:
+	make -C drivers
 
 clean:
 	find ./ -name "*.o" | xargs rm -rf
