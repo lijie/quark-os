@@ -22,5 +22,5 @@ _test_task:
 
 	.globl die
 die:
-	cli
+	hlt
 1:	jb 1

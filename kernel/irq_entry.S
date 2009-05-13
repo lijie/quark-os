@@ -52,6 +52,21 @@ no_error_code:
 	popl %eax
 	iret
 
+	.global dev_noavailable
+dev_noavailable:
+	pushl $do_dev_noavailable
+	jmp no_error_code
+
+	.global invalid_opcode
+invalid_opcode:
+	pushl $do_invalid_opcode
+	jmp no_error_code
+
+	.global overflow_trap
+overflow_trap:
+	pushl $do_overflow_trap
+	jmp no_error_code
+
 	.global bounds_error
 bounds_error:
 	pushl $do_bounds_error
@@ -91,6 +106,26 @@ error_code:
 	popl %ebx
 	popl %eax
 	iret
+
+	.global gp_exception
+gp_exception:
+	pushl $do_gp_exception
+	jmp error_code
+
+	.global page_fault
+page_fault:
+	pushl $do_page_fault
+	jmp error_code
+
+	.global stack_fault
+stack_fault:
+	pushl $do_stack_fault
+	jmp error_code
+
+	.global seg_nopresent
+seg_nopresent:
+	pushl $do_seg_nopresent
+	jmp error_code
 
 	.global invalid_tss
 invalid_tss:

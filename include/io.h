@@ -10,7 +10,7 @@ static inline void slow_down_io(void) {
 		: : );
 }
 
-static inline void outb(uint8_t port, uint8_t val)
+static inline void outb(uint8_t val, uint8_t port)
 {
 	__asm__ __volatile__ ("outb %0, %w1" : : "a"(val), "Nd"(port));
 }
@@ -22,9 +22,9 @@ static inline uint8_t inb(uint8_t port)
 	return val;
 }
 
-static inline void outb_p(uint8_t port, uint8_t val)
+static inline void outb_p(uint8_t val, uint8_t port)
 {
-	outb(port, val);
+	outb(val, port);
 	slow_down_io();
 /* 	__asm__ __volatile ("nop\n\tnop\n\tnop\n\t"); */
 }

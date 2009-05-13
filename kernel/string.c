@@ -37,7 +37,7 @@ size_t strnlen(const char * s, size_t count)
 void mem_dump(unsigned long addr, uint32_t blk, uint32_t size)
 {
 	static char * mdformat[] = {
-		"%02X", "%04X", "%08X",
+		"%02X ", "%04X ", "%08X ",
 	};
 
 	int i = size;
@@ -61,6 +61,7 @@ void mem_dump(unsigned long addr, uint32_t blk, uint32_t size)
 		ps = 2;
 		_MEMPRINT_;
 	} else {
+		printf ("invalid blk size %d\n", blk);
 		BUG();
 	}
 

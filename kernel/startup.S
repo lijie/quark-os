@@ -14,9 +14,23 @@ __endless:	jmp __endless
 	.code32
 	.text
 ENTRY(startup)
+	/* disable NMI */
+	movb $0x80, %al
+	outb %al, $0x70
+	nop
+
+	/* enable A20 */
 	in $0x92, %al
 	or $0x02, %al
 	out %al, $0x92
+
+	/* mask all INTs */
+	movb $0xFF, %al
+	outb %al, $0xA1
+	nop
+	movb $0xFB, %al
+	outb %al, $0x21
+	nop
 
 	/* copy kernel code from 0x10000 -> _text */
 	leal _text, %edi
@@ -45,12 +59,7 @@ page_pde_offset = (__PAGE_OFFSET >> 20);
 	addl $PAGE_SIZE, %edi
 	leal pg, %edx
 	subl $__PAGE_OFFSET, %edx
-	movl %edi, testv1 - __PAGE_OFFSET
-	movl %edx, testv2 - __PAGE_OFFSET
-#if 0
-	movl $0x202000, %edi
-	movl $0x201000, %edx
-#endif
+
 	movl $0x007, %eax			/* 0x007 = PRESENT+RW+USER */
 10:
 	leal 0x007(%edi),%ecx			/* Create PDE entry */
@@ -79,7 +88,7 @@ page_pde_offset = (__PAGE_OFFSET >> 20);
 1:
 	/* Now, the virtul addr comes to true! */
 	/* give a stack to our best friend --> C ^_^ */
-#if 1
+#if 0
 	movl $(__PAGE_OFFSET + KERNEL_STACK), %esp
 	movl $(__PAGE_OFFSET + KERNEL_STACK), %ebp
 #endif
@@ -104,10 +113,6 @@ pmmode:
 	ljmp $8, $1f
 1:
 	lss start_stack, %esp
-#if 0
-	movl %esp, testv1
-	movl %ebp, testv2
-#endif
  	call kernel_start
 spin : 
 	jmp spin          # Loop
@@ -120,47 +125,25 @@ _load_gdt:
 	ALIGN
 	.global ignore_int
 ignore_int:
-	cld
 	pushl %eax
-	pushl %ecx
-	pushl %edx
-	pushl %es
-	pushl %ds
-	movl $0x10,%eax
-	movl %eax,%ds
-	movl %eax,%es
-#if 0
-	cmpl $2,early_recursion_flag
-	je hlt_loop
-	incl early_recursion_flag
-#endif
-	pushl 16(%esp)
-	pushl 24(%esp)
-	pushl 32(%esp)
-	pushl 40(%esp)
-	pushl $int_msg
-	call printf
+	pushl $8
+	pushl $4
+	pushl %esp
+	call mem_dump
 
-	addl $(5*4),%esp
-	popl %ds
-	popl %es
-	popl %edx
-	popl %ecx
+	movl $0, 24(%esp)
+
+	movl 24(%esp), %eax
+	movl %eax, testv1
+	call show_v1v2
+
 	popl %eax
+	popl %eax
+	popl %eax
+	popl %eax
+
 	iret
-#if 0
-ignore_int:
-	push %ds
-	pushl %eax
-	movl $0x10, %eax
-	mov %ax, %ds
-	pushl $0x42
-	call putchar
-	popl %eax
-	popl %eax
-	pop %ds
-	iret
-#endif
+
 	.data
 
 /*
@@ -174,6 +157,8 @@ ENTRY(start_stack)
 	.global init_thread
 init_thread:
 	.fill THREAD_SIZE / 8, 8, 0
+
+	.align 4096
 	.global idt
 idt:
 	.fill 256, 8, 0

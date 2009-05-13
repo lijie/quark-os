@@ -13,6 +13,10 @@ SECTIONS {
 	 _etext = .;			/* End of text section */
 
   . = ALIGN(4096);
+	.rodata : {
+		*(.rodata) *(.rodata.*)
+	}
+
   .data : {			/* Data */
 	*(.data)
 	CONSTRUCTORS
