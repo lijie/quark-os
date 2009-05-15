@@ -16,8 +16,10 @@
 #define	TSS		16
 #define	LDT		17
 
+#if 0
 #define	BOOT_CS		KERNEL_CODE
 #define	BOOT_DS		KERNEL_DATA
+#endif
 
 /* selector */
 #define	SEG_SELECTOR(index)	((index) << 3)
@@ -134,6 +136,11 @@ struct idtr_struct {
 	uint32_t	base;
 } __attribute__((packed));
 
+struct gdtr_struct {
+	uint16_t	limit;
+	uint32_t	base;
+} __attribute__((packed));
+
 extern void init_desc(desc_t *desc, uint32_t base, uint32_t limit, uint32_t attr);
 
 #define	sti()		__asm__ __volatile__ ("sti")
@@ -186,6 +193,9 @@ extern desc_t ldt[];
 
 /* kernel pgdir */
 extern char pg[];
+
+#define	PTE_SHIFT		12
+#define	PDE_SHIFT		22
 
 /* for PIC, like 8259A... */
 #define	MASTER_OFFSET	0x20

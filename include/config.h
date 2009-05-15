@@ -25,4 +25,7 @@
 
 #define	THREAD_SIZE		(PAGE_SIZE << 1)
 #define	STACK_SIZE		THREAD_SIZE
+
+#define	BOOT_CS			8
+#define	BOOT_DS			16
 #endif

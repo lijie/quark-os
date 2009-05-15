@@ -19,10 +19,13 @@ static inline void delay(void)
 
 extern unsigned long testv1;
 extern unsigned long testv2;
+extern unsigned char _text[];
+extern unsigned char _end[];
 
 void show_v1v2(void)
 {
 	printf("v1 %X v2 %X\n", testv1, testv2);
+	printf("_text %p _end %p\n", _text, _end);
 }
 
 /* here! we are in the world of C!! */
@@ -34,6 +37,7 @@ void kernel_start(void)
 	printf("This is printf %d\n", 1996);
 	printf("mem size %d bytes\n", mem_size_kbytes * 1024);
 
+	show_v1v2();
 	time_init();
 	irq_init();
 	traps_init();

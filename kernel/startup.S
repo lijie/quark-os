@@ -14,112 +14,65 @@ __endless:	jmp __endless
 	.code32
 	.text
 ENTRY(startup)
-	/* disable NMI */
-	movb $0x80, %al
-	outb %al, $0x70
-	nop
+	/* get current real address, saved in %esi */
+	call getr
+getr:
+	popl %esi
+	leal getr, %eax
+	subl $startup, %eax
+	subl %eax, %esi
 
-	/* enable A20 */
-	in $0x92, %al
-	or $0x02, %al
-	out %al, $0x92
+	leal startup, %ebx
+	subl $__PAGE_OFFSET, %ebx
+	subl %esi, %ebx
 
-	/* mask all INTs */
-	movb $0xFF, %al
-	outb %al, $0xA1
-	nop
-	movb $0xFB, %al
-	outb %al, $0x21
-	nop
-
-	/* copy kernel code from 0x10000 -> _text */
-	leal _text, %edi
-	subl $__PAGE_OFFSET, %edi
-	leal _end, %ecx
-	subl $__PAGE_OFFSET, %ecx
-	subl %edi, %ecx
-	movl $0x00010000, %esi
-	rep
-	movsb
-
-	/* save memory size */
-	movl 0x8000, %ebx
-	movl %ebx, mem_size_kbytes - __PAGE_OFFSET
-
-	jmp begin_boot
-
-ENTRY(begin_boot)	
-	cld
-
-	/* enable paging */
-#if 1
-page_pde_offset = (__PAGE_OFFSET >> 20);
-	leal pg, %edi
-	subl $__PAGE_OFFSET, %edi
-	addl $PAGE_SIZE, %edi
-	leal pg, %edx
-	subl $__PAGE_OFFSET, %edx
-
-	movl $0x007, %eax			/* 0x007 = PRESENT+RW+USER */
-10:
-	leal 0x007(%edi),%ecx			/* Create PDE entry */
-	/* map 0x00000000 -> 0x00000000 */
-	movl %ecx,(%edx)			/* Store identity PDE entry */
-	/* map 0xC0000000 -> 0x00000000 */
-	movl %ecx,page_pde_offset(%edx)		/* Store kernel PDE entry */
-	addl $4,%edx
-	movl $1024, %ecx
-11:
-	stosl
-	addl $0x1000,%eax
-	loop 11b
-
-	/* map 8MB size only, it should be 896MB like linux */
-	cmpl $0x800000, %eax
-	jb 10b
-/*	movl %edi,(init_pg_tables_end - __PAGE_OFFSET) */
-
-	movl %edx, %eax
-	movl %eax,%cr3		/* set the page table pointer.. */
-	movl %cr0,%eax
-	orl $0x80000000,%eax
-	movl %eax,%cr0		/* ..and set paging (PG) bit */
-	ljmp $8,$1f	/* Clear prefetch and normalize %eip */
-1:
-	/* Now, the virtul addr comes to true! */
-	/* give a stack to our best friend --> C ^_^ */
-#if 0
-	movl $(__PAGE_OFFSET + KERNEL_STACK), %esp
-	movl $(__PAGE_OFFSET + KERNEL_STACK), %ebp
-#endif
-/*
- * Initialize eflags.  Some BIOS's leave bits like NT set.  This would
- * confuse the debugger if this code is traced.
- * XXX - best to initialize before switching to protected mode.
- */
-	pushl $0
-	popfl
-#endif
-
-	cli                 # Clear or disable interrupts
-pmmode:
-	lgdt gdtr
-	movl $16, %eax
+	movl $BOOT_DS, %eax
 	movw %ax, %ds
 	movw %ax, %es
 	movw %ax, %fs
 	movw %ax, %gs
 	movw %ax, %ss
-	ljmp $8, $1f
+
+	/* we want use C ASAP, so give me a stack... */
+	movl $(mini_stack - __PAGE_OFFSET), %esp
+	subl %ebx, %esp
+
+	cli                 # Clear or disable interrupts
+	pushl %esi
+
+	/* disable INTs, enable pageing here */
+	call boot_main
+	popl %esi
+
+	/* relocate EIP */
+	jmp 1f
 1:
+	movl $1f, %eax
+	jmp *%eax
+1:
+	/* load ourselfs gdt */
+	lgdt gdtr
+	ljmp $(BOOT_CS), $1f
+1:
+	movl $BOOT_DS, %eax
+	movw %ax, %ds
+	movw %ax, %es
+	movw %ax, %fs
+	movw %ax, %gs
+
 	lss start_stack, %esp
+
+	/* clear eflags */
+	pushl $0
+	popfl
+
+	/* save memory size */
+	movl 0x8000, %eax
+	movl %eax, mem_size_kbytes
+
  	call kernel_start
 spin : 
 	jmp spin          # Loop
-
-	.globl _load_gdt
-_load_gdt:
-	lgdt gdtr
 
 /* This is the default interrupt "handler" :-) */
 	ALIGN
@@ -144,6 +97,7 @@ ignore_int:
 
 	iret
 
+	.align 4
 	.data
 
 /*
@@ -203,8 +157,16 @@ ldt:
 	.quad 0x00c0f200000003ff
 
 	.align 4
-int_msg:
-	.asciz "Unknown interrupt or fault at: %p %p %p %p\n"
+	.global testv1
+testv1:	
+	.long 0
+	.global testv2
+testv2:	
+	.long 0
+
+	.align 4
+	.fill 64, 8, 0
+mini_stack:
 
 	.global mem_size_kbytes
 	.bss
@@ -212,21 +174,5 @@ int_msg:
 	.type	mem_size_kbytes, @object
 	.size	mem_size_kbytes, 4
 mem_size_kbytes:
-	.zero 4
-
-	.global testv1
-	.bss
-	.align 4
-	.type	testv1, @object
-	.size	testv1, 4
-testv1:
-	.zero 4
-
-	.global testv2
-	.bss
-	.align 4
-	.type	testv2, @object
-	.size	testv2, 4
-testv2:
 	.zero 4
 
