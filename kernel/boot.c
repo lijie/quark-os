@@ -38,7 +38,7 @@ static inline void move_kernel_code(unsigned long from)
 	memcpy((void *)_text - __PAGE_OFFSET, (void *)from, size);
 }
 
-void default_page_map(void)
+static void default_page_map(void)
 {
 	unsigned long *pde = (unsigned long *)pg;
 	unsigned long *pte;
@@ -58,7 +58,7 @@ void default_page_map(void)
 //		pde[i] = (unsigned long)pte;
 		pde[(__PAGE_OFFSET / (1 << PDE_SHIFT)) + i] = pde[i];
 //		pde[0x300 + i] = pde[i];
-		for (;j < 2048; j++) {
+		for (;j < i * 1024; j++) {
 			pte[j] = PAGE_SIZE * j + attr;
 		}
 	}
