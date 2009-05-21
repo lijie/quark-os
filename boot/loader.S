@@ -9,14 +9,43 @@
 _start:
 	movw $(START_SEG), %ax
 	movw %ax, %es
-	movw $START_OFFSET, %bx
-	movb $0, %dl
+#if 0
+	movw $0x1000, %ax
+	movw %ax, %ds
+	
+	movw $0xFFFF, %cx
+	movw $0xFFFF, %ax
+	leaw START_OFFSET, %di
+	rep
+	stosw
+#endif
+
+	movw $0, %bx	/* dest */
+	movb $0, %ch		/* track */
+b1:
+b20:
 	movb $0, %dh
-	movb $0, %ch
-	movb $2, %cl
-	movb $63, %al
-	movb $2, %ah
+	jmp b22
+b21:	
+	movb $1, %dh		/* head */
+b22:
+	movb $0, %dl		/* softdisk */
+	movb $18, %al		/* number of sector */
+	movb $1, %cl		/* offset */
+	movb $2, %ah		/* function #2 */
 	int $0x13
+	addw $(512 * 18), %bx
+	cmpw $0, %bx
+	jne b3
+	movw %es, %ax
+	addw $0x1000, %ax
+	movw %ax, %es
+b3:
+	cmpb $1, %dh
+	jne b21 
+	incb %ch
+	cmpb $3, %ch		/* read 512 * 18 * (3 + 1) * 2 bytes */
+	jbe b1
 
 	call clrscr
 	call get_key
@@ -30,6 +59,8 @@ _start:
 	movl %eax,%cr0          # Mov modified word to the control register
 
 	DATA32 ljmp $8, $pm
+
+readsector:
 
 get_key:	
 	movb $0x00,%ah         
@@ -88,7 +119,7 @@ pm:
 #if 0
 	ljmp $START_SEG, $START_OFFSET
 #endif
-	ljmp $8, $0x10000
+	ljmp $8, $(0x10000 + 0x200)
 
 gdtr:
 	.word (gdt_end - gdt-1)		# Length of the gdt
@@ -98,6 +129,8 @@ gdt:
 	.quad 0x00cf9a000000ffff	/* kernel 4GB code at 0x00000000 */
 	.quad 0x00cf92000000ffff	/* kernel 4GB data at 0x00000000 */
 gdt_end:
+sector:
+	.word 0
 
 	.org 510
 	.word 0xAA55
