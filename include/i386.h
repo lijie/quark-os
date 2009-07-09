@@ -197,32 +197,4 @@ extern char pg[];
 #define	PTE_SHIFT		12
 #define	PDE_SHIFT		22
 
-/* for PIC, like 8259A... */
-#define	MASTER_OFFSET	0x20
-#define	SLAVE_OFFSET	0x28
-#define	__PIC_OFFSET(r)	(r + 0x20)
-
-enum {
-	PIC_IRQ0 = 0,
-	PIC_IRQ1,
-	PIC_IRQ2,
-	PIC_IRQ3,
-	PIC_IRQ4,
-	PIC_IRQ5,
-	PIC_IRQ6,
-	PIC_IRQ7,
-	PIC_IRQ8,
-	PIC_IRQ9,
-	PIC_IRQ10,
-	PIC_IRQ11,
-	PIC_IRQ12,
-	PIC_IRQ13,
-	PIC_IRQ14,
-	PIC_IRQ15,
-};
-
-#define	PIC_IRQ_KBD	__PIC_OFFSET(PIC_IRQ1)
-#define	PIC_IRQ_SD	__PIC_OFFSET(PIC_IRQ6)
-#define	PIC_IRQ_RT	__PIC_OFFSET(PIC_IRQ8)
-#define	PIC_IRQ_HD	__PIC_OFFSET(PIC_IRQ14)
 #endif

@@ -2,6 +2,11 @@
 #define	__IRQ_H__
 
 #include "i386.h"
+#ifdef	USE_APIC
+#include "apic.h"
+#else
+#include "pic.h"
+#endif
 
 #undef	__USE_BIOS_IRQ__
 
