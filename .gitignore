@@ -5,3 +5,5 @@
 *.elf
 *.map
 *.d
+cscope.*
+
