@@ -2,6 +2,7 @@
 #define _LINUX_LIST_H
 
 #include "system.h"
+#include "types.h"
 
 /*
  * Simple doubly linked list implementation.
