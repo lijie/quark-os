@@ -169,6 +169,8 @@ void mm_init(void)
 	printf("free mem %d bytes\n", (total_pages - (free_page_start - mem_map)) * PAGE_SIZE);
 
 	mm_test();
+
+	kmem_cache_init();
 }
 
 static void free_area_stats(struct zone *zone)

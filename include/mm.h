@@ -3,6 +3,8 @@
 
 #include "config.h"
 #include "types.h"
+#include "cache.h"
+#include "gfp.h"
 
 static inline unsigned long virt_to_phys(unsigned long virt)
 {
@@ -24,4 +26,7 @@ struct mm_struct {
 extern unsigned long mem_size_kbytes;
 
 #define	ZONE_DMA_SIZE	(16 * 1024 * 1024)
+
+#include "page.h"
+#include "slab.h"
 #endif
