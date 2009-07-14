@@ -6,6 +6,18 @@
 #include "mm.h"
 #include "list.h"
 
+typedef	unsigned long pgd_t;
+typedef	unsigned long pte_t;
+
+static inline void pgd_info(unsigned long addr)
+{
+	unsigned long *pgdir = (unsigned long *)pg;
+	unsigned long *ptdir = (unsigned long *)(pg + 4096);
+
+	printf("addr %p, pg %p pge %p pte %p\n", addr, pg, 
+	       pgdir[addr >> 22], ptdir[(addr >> 12) & 0x03FF]);
+}
+
 struct page {
 	atmoic_t  		count;
 	unsigned long 		flags;
