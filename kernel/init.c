@@ -46,7 +46,7 @@ void kernel_start(void)
 
 //	__asm__ __volatile__ ("idivl 0");
 	/* Test page fault */
-	memset(0xC0900000, 0xff, 123);
+//	memset(0xC0900000, 0xff, 123);
 
 	/* task_init(); */
 	beyond = 2000;
