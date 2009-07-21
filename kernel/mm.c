@@ -168,9 +168,8 @@ void mm_init(void)
 	printf("free_mem_start %X\n", free_mem_start);
 	printf("free mem %d bytes\n", (total_pages - (free_page_start - mem_map)) * PAGE_SIZE);
 
-	mm_test();
-
 	kmem_cache_init();
+	mm_test();
 }
 
 static void free_area_stats(struct zone *zone)
@@ -339,4 +338,14 @@ static void mm_test(void)
 
 	__free_pages(page, 0);
 #endif
+
+	{
+		void *p;
+
+		p = kmalloc(256, 0);
+		if (p)
+			printf("kmalloc %X\n", p);
+		else
+			printf("kmalloc failed\n");
+	}
 }

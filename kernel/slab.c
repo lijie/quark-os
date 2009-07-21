@@ -2,6 +2,12 @@
 #include "list.h"
 #include "mm.h"
 
+#define	slab_dbg(lv, fmt, ...)						\
+	do {								\
+		if (lv)							\
+			printf("[%s,%d]:" fmt, __func__, __LINE__, __VA_ARGS__); \
+	} while (0)
+
 typedef unsigned int kmem_bufctl_t;
 #define BUFCTL_END	(((kmem_bufctl_t)(~0U))-0)
 #define BUFCTL_FREE	(((kmem_bufctl_t)(~0U))-1)
@@ -73,9 +79,19 @@ struct kmem_cache {
 
 	/* constructor func */
 	void (*ctor)(void *obj);
+
+	char *name;
 	struct list_head next;
 	struct kmem_list3 *nodelist;
 };
+
+static inline void __kmem_cache_dbg(int lv, struct kmem_cache *cache)
+{
+	if (lv) {
+		printf("name %s order %d buffer_size %d slab_size %d\n", 
+		       cache->name, cache->gfporder, cache->buffer_size, cache->slab_size);
+	}
+}
 
 struct cache_sizes {
 	size_t		 	cs_size;
@@ -94,6 +110,22 @@ struct cache_sizes malloc_sizes[] = {
 	CACHE(ULONG_MAX)
 #undef CACHE
 };
+
+struct cache_names {
+	char *name;
+	char *name_dma;
+};
+
+static struct cache_names cache_names[] = {
+#define CACHE(x) { .name = "size-" #x, .name_dma = "size-" #x "(DMA)" },
+#include "kmalloc_sizes.h"
+	{NULL,}
+#undef CACHE
+};
+
+static int slab_break_gfp_order = 0;
+static int slab_early_init = 1;
+static struct list_head cache_chain;
 
 static void print_kmem_cache(struct kmem_cache *cachep, const char *str)
 {
@@ -127,7 +159,7 @@ static void * kmem_getpages(struct kmem_cache *cachep, unsigned long flags)
 {
 	struct page *page;
 
-	printf("%s: order: %d\n", __func__, cachep->gfporder);
+	slab_dbg(1, "order: %d\n", cachep->gfporder);
 	page = alloc_pages(flags, cachep->gfporder);
 	if (!page) {
 		printf("%s: alloc pages failed!\n", __func__);
@@ -160,7 +192,7 @@ static void cache_estimate(int order, size_t buffer_size, size_t align,
 			mgmt_size = slab_mgmt_size(nr_objs, align);
 		}
 
-		printf("%s: mgmt_size %d, align %d\n", __func__, mgmt_size, align);
+//		printf("%s: mgmt_size %d, align %d\n", __func__, mgmt_size, align);
 	}
 
 	if (nr_objs > SLAB_LIMIT)
@@ -273,16 +305,176 @@ static int cache_grow(struct kmem_cache *cachep,
 	return 0;
 }
 
+/**
+ * calculate_slab_order - calculate size (page order) of slabs
+ * @cachep: pointer to the cache that is being created
+ * @size: size of objects to be created in this cache.
+ * @align: required alignment for the objects.
+ * @flags: slab allocation flags
+ *
+ * Also calculates the number of objects per slab.
+ *
+ * This could be made much more intelligent.  For now, try to avoid using
+ * high order pages for slabs.  When the gfp() functions are more friendly
+ * towards high-order requests, this should be changed.
+ */
+static size_t calculate_slab_order(struct kmem_cache *cachep,
+				   size_t size, size_t align, unsigned long flags)
+{
+	unsigned long offslab_limit;
+	size_t left_over = 0;
+	int gfporder;
+
+	for (gfporder = 0; gfporder <= MAX_ORDER; gfporder++) {
+		unsigned int num;
+		size_t remainder;
+
+		cache_estimate(gfporder, size, align, flags, &remainder, &num);
+		if (!num) {
+			slab_dbg(0, "order %d is too small, %d\n", gfporder, num);
+			continue;
+		}
+
+		if (flags & CFLGS_OFF_SLAB) {
+			/*
+			 * Max number of objs-per-slab for caches which
+			 * use off-slab slabs. Needed to avoid a possible
+			 * looping condition in cache_grow().
+			 */
+			offslab_limit = size - sizeof(struct slab);
+			offslab_limit /= sizeof(kmem_bufctl_t);
+
+ 			if (num > offslab_limit)
+				break;
+		}
+
+		/* Found something acceptable - save it away */
+		cachep->num = num;
+		cachep->gfporder = gfporder;
+		left_over = remainder;
+
+#if 0
+		/*
+		 * A VFS-reclaimable slab tends to have most allocations
+		 * as GFP_NOFS and we really don't want to have to be allocating
+		 * higher-order pages when we are unable to shrink dcache.
+		 */
+		if (flags & SLAB_RECLAIM_ACCOUNT)
+			break;
+
+#endif
+		/*
+		 * Large number of objects is good, but very large slabs are
+		 * currently bad for the gfp()s.
+		 */
+		if (gfporder >= slab_break_gfp_order)
+			break;
+
+		/*
+		 * Acceptable internal fragmentation?
+		 */
+		if (left_over * 8 <= (PAGE_SIZE << gfporder))
+			break;
+	}
+
+	return left_over;
+}
+
+static void __kmem_cache_destroy(struct kmem_cache *cachep)
+{
+}
+
 struct kmem_cache * kmem_cache_create(const char *name, size_t size, size_t align,
 				      unsigned long flags, void (*ctor)(void *))
 {
 	struct kmem_cache *cachep;
+	size_t left_over;
+	size_t slab_size;
 
 	/* 1. caculate align */
+	/* TODO */
 
 	/* 2. alloc cachep */
 	cachep = kmem_cache_zalloc(&cache_cache, 0 /* GFP_KERNEL*/);
+
+	if (!cachep)
+		goto oops;
+
+	/*
+	 * Determine if the slab management is 'on' or 'off' slab.
+	 * (bootstrapping cannot cope with offslab caches so don't do
+	 * it too early on.)
+	 */
+	if ((size >= (PAGE_SIZE >> 3)) && !slab_early_init)
+		/*
+		 * Size is large, assume best to place the slab management obj
+		 * off-slab (should allow better packing of objs).
+		 */
+		flags |= CFLGS_OFF_SLAB;
+
+	size = ALIGN(size, align);
+	left_over = calculate_slab_order(cachep, size, align, flags);
+
+	if (!cachep->num) {
+		slab_dbg(1, "kmem_cache_create: couldn't create cache %s.\n", name);
+		kmem_cache_free(&cache_cache, cachep);
+		cachep = NULL;
+		goto oops;
+	}
+
+	slab_size = ALIGN(cachep->num * sizeof(kmem_bufctl_t)
+			  + sizeof(struct slab), align);
+
+	if (flags & CFLGS_OFF_SLAB) {
+		/* TODO */
+		BUG();
+	}
+
+	cachep->colour_off = cache_line_size();
+	/* Offset must be a multiple of the alignment. */
+	if (cachep->colour_off < align)
+		cachep->colour_off = align;
+
+	/*
+	 * UNKNOWN
+	 */
+	cachep->colour = left_over / cachep->colour_off;
+	cachep->slab_size = slab_size;
+	cachep->flags = flags;
+	cachep->gfpflags = 0;
+
+	cachep->buffer_size = size;
+
+	/* 
+	 * UNKNOWN
+	 */
+//	cachep->reciprocal_buffer_size = reciprocal_value(size);
+
+	/*
+	 * If the slab has been placed off-slab, and we have enough space then
+	 * move it on-slab. This is at the expense of any extra colouring.
+	 */
+	if (flags & CFLGS_OFF_SLAB && left_over >= slab_size) {
+		flags &= ~CFLGS_OFF_SLAB;
+		left_over -= slab_size;
+	}
+
+	cachep->ctor = ctor;
+	cachep->name = name;
+
+	if (setup_cpu_cache(cachep, gfp)) {
+		__kmem_cache_destroy(cachep);
+		cachep = NULL;
+		goto oops;
+	}
+
+	/* cache setup completed, link it into the list */
+	list_add(&cachep->next, &cache_chain);
+
 	return cachep;
+
+oops:
+	return NULL;
 }
 
 static void *slab_get_obj(struct kmem_cache *cachep, 
@@ -304,10 +496,11 @@ static void *cache_alloc_refill(struct kmem_cache *cachep, gfp_t flags)
 	struct kmem_list3 *l3 = cachep->nodelist;
 	int batchcount;
 
-	printf("%s, %d\n", __func__, cachep->buffer_size);
+	slab_dbg(0, "buffer_size %d\n", cachep->buffer_size);
 
 retry:
 	batchcount = ac->batchcount;
+	slab_dbg(1, "batchcount %d\n", batchcount);
 	if (!ac->touched && batchcount > BATCHREFILL_LIMIT) {
 		/*
 		 * If there was little recent activity on this cache, then
@@ -367,6 +560,8 @@ void *kmem_cache_alloc(struct kmem_cache *cachep, gfp_t flags)
 	void *ret = NULL;
 	struct array_cache *ac = cachep->array;
 
+	slab_dbg(1, "avail %d\n", ac->avail);
+
 	if (ac->avail)
 		ret = ac->entry[--ac->avail];
 	else {
@@ -377,12 +572,35 @@ void *kmem_cache_alloc(struct kmem_cache *cachep, gfp_t flags)
 	if ((flags & __GFP_ZERO) && ret)
 		memset(ret, 0, cachep->buffer_size);
 
+	slab_dbg(1, "obj %X\n", ret);
 	return ret;
+}
+
+void kmem_cache_free(struct kmem_cache *cachep, void *objp)
+{
+	/* TODO */
+}
+
+void * kmalloc(size_t size, gfp_t flags)
+{
+	struct cache_sizes *cs = malloc_sizes;
+	struct kmem_cache *cache;
+
+	while (size > cs->cs_size)
+		cs++;
+
+	cache = cs->cs_cachep;
+	if (!cache)
+		return NULL;
+
+	slab_dbg(1, "find general size %d\n", cs->cs_size);
+	return kmem_cache_alloc(cache, flags);
 }
 
 int kmem_cache_init(void)
 {
 	struct cache_sizes *cs = malloc_sizes;
+	struct cache_names *names = cache_names;
 	int i, order;
 	unsigned int left_over;
 
@@ -410,13 +628,19 @@ int kmem_cache_init(void)
 
 	printf("cache_cache slab_size %d\n", cache_cache.slab_size);
 
+	INIT_LIST_HEAD(&cache_chain);
+	list_add(&cache_cache.next, &cache_chain);
+
 	/* init kmalloc */
 	/* TODO... */
 	while (cs->cs_size != ULONG_MAX) {
-		cs->cs_cachep = kmem_cache_create("kmalloc", cs->cs_size, 
+		cs->cs_cachep = kmem_cache_create(names->name, cs->cs_size, 
 						  cache_line_size(), 0, NULL);
-		
-		break;
+
+		__kmem_cache_dbg(1, cs->cs_cachep);
+		cs++;
+		names++;
+//		break;
 	}
 
 	return 0;

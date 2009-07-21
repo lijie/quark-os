@@ -6,4 +6,5 @@
 *.map
 *.d
 cscope.*
-
+*.cache
+*.ede
