@@ -20,4 +20,6 @@
 		while (1);						\
 	} while (0)
 
+#define	smp_processor_id()	0
+#define	NR_CPUS			1
 #endif

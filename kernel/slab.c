@@ -1,3 +1,4 @@
+#include "string.h"
 #include "system.h"
 #include "list.h"
 #include "mm.h"
@@ -24,6 +25,16 @@ struct array_cache {
 			 * alignment of array_cache. Also simplifies accessing
 			 * the entries.
 			 */
+};
+
+/*
+ * bootstrap: The caches do not work without cpuarrays anymore, but the
+ * cpuarrays are allocated from the generic caches...
+ */
+#define BOOT_CPUCACHE_ENTRIES	1
+struct arraycache_init {
+	struct array_cache cache;
+	void *entries[BOOT_CPUCACHE_ENTRIES];
 };
 
 /*
@@ -60,7 +71,7 @@ struct kmem_list3 {
 };
 
 struct kmem_cache {
-	struct array_cache *array;
+	struct array_cache *array[NR_CPUS];
 	unsigned int batchcount;
 	unsigned int limit;
 	unsigned int flags;		/* constant flags */
@@ -80,7 +91,7 @@ struct kmem_cache {
 	/* constructor func */
 	void (*ctor)(void *obj);
 
-	char *name;
+	const char *name;
 	struct list_head next;
 	struct kmem_list3 *nodelist;
 };
@@ -137,11 +148,23 @@ static struct kmem_cache cache_cache = {
 };
 
 static struct kmem_list3 initkmem_list3;
-static struct array_cache initarray_cache = {
-	.avail = 0,
-	.limit = BOOT_CPUCACHE_ENTRIES,
-	.batchcount = 1,
-	.touched = 0,
+
+static struct arraycache_init initarray_cache = {
+	{
+		.avail = 0,
+		.limit = BOOT_CPUCACHE_ENTRIES,
+		.batchcount = 1,
+		.touched = 0,
+	}
+};
+
+static struct arraycache_init initarray_generic = {
+	{
+		.avail = 0,
+		.limit = BOOT_CPUCACHE_ENTRIES,
+		.batchcount = 1,
+		.touched = 0,
+	}
 };
 
 static inline void *index_to_obj(struct kmem_cache *cache, struct slab *slab,
@@ -183,6 +206,7 @@ static void cache_estimate(int order, size_t buffer_size, size_t align,
 
 	if (flags & CFLGS_OFF_SLAB) {
 		// TODO
+		BUG();
 	} else {
 		nr_objs = (slab_size - sizeof(struct slab)) / (buffer_size + sizeof(kmem_bufctl_t));
 
@@ -384,12 +408,52 @@ static void __kmem_cache_destroy(struct kmem_cache *cachep)
 {
 }
 
+/*
+ * chicken and egg problem: delay the per-cpu array allocation
+ * until the general caches are up.
+ */
+static enum {
+	NONE,
+	PARTIAL_AC,
+	PARTIAL_L3,
+	EARLY,
+	FULL
+} g_cpucache_up;
+
+static inline struct array_cache * cpu_cache_get(struct kmem_cache *cachep)
+{
+	return cachep->array[smp_processor_id()];
+}
+
+/* ??? */
+static void set_up_list3s(struct kmem_cache *cachep, int index)
+{
+}
+
+static int setup_cpu_cache(struct kmem_cache *cachep, gfp_t gfp)
+{
+	if (g_cpucache_up == NONE) {
+		cachep->array[smp_processor_id()] = &initarray_generic.cache;
+		g_cpucache_up = PARTIAL_AC;
+	}
+	else {
+		printf("kmalloc cpu cache.\n");
+		cachep->array[smp_processor_id()] = 
+			kmalloc(sizeof(struct arraycache_init), gfp);
+	}
+}
+
+static int enable_cpucache(struct kmem_cache *cachep, gfp_t gfp)
+{
+}
+
 struct kmem_cache * kmem_cache_create(const char *name, size_t size, size_t align,
 				      unsigned long flags, void (*ctor)(void *))
 {
 	struct kmem_cache *cachep;
 	size_t left_over;
 	size_t slab_size;
+	gfp_t gfp = 0;
 
 	/* 1. caculate align */
 	/* TODO */
@@ -492,13 +556,14 @@ static void *slab_get_obj(struct kmem_cache *cachep,
 
 static void *cache_alloc_refill(struct kmem_cache *cachep, gfp_t flags)
 {
-	struct array_cache *ac = cachep->array;
+	struct array_cache *ac;
 	struct kmem_list3 *l3 = cachep->nodelist;
 	int batchcount;
 
-	slab_dbg(0, "buffer_size %d\n", cachep->buffer_size);
+	slab_dbg(1, "cachep %X, buffer_size %d\n", (int)cachep, cachep->buffer_size);
 
 retry:
+	ac = cpu_cache_get(cachep);
 	batchcount = ac->batchcount;
 	slab_dbg(1, "batchcount %d\n", batchcount);
 	if (!ac->touched && batchcount > BATCHREFILL_LIMIT) {
@@ -525,6 +590,8 @@ retry:
 
 		/* find a slab */
 		slabp = list_entry(entry, struct slab, list);
+		printf("We have slab %X %X %X!\n", (int)slabp, (int)l3, (int)entry);
+
 		while (slabp->inuse < cachep->num && batchcount--) {
 //			STATS_INC_ALLOCED(cachep);
 //			STATS_INC_ACTIVE(cachep);
@@ -558,7 +625,9 @@ must_grow:
 void *kmem_cache_alloc(struct kmem_cache *cachep, gfp_t flags)
 {
 	void *ret = NULL;
-	struct array_cache *ac = cachep->array;
+	struct array_cache *ac;
+
+	ac = cpu_cache_get(cachep);
 
 	slab_dbg(1, "avail %d\n", ac->avail);
 
@@ -593,7 +662,7 @@ void * kmalloc(size_t size, gfp_t flags)
 	if (!cache)
 		return NULL;
 
-	slab_dbg(1, "find general size %d\n", cs->cs_size);
+	slab_dbg(1, "find general size %X, %d\n", (int)cache, cs->cs_size);
 	return kmem_cache_alloc(cache, flags);
 }
 
@@ -609,7 +678,7 @@ int kmem_cache_init(void)
 	}
 
 	cache_cache.nodelist = &initkmem_list3;
-	cache_cache.array = &initarray_cache;
+	cache_cache.array[smp_processor_id()] = &initarray_cache.cache;
 
 	cache_cache.colour_off = cache_line_size();
 
